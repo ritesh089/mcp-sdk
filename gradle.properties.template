@@ -1,0 +1,15 @@
+# Copy this file to gradle.properties and fill in your credentials
+# gradle.properties is gitignored for security
+
+# GitHub Packages (for publishGitHub task)
+gpr.user=xxxx
+gpr.key=ssss
+
+# Maven Central / Sonatype OSSRH (for publishSnapshot task)
+ossrhUsername=your-sonatype-username
+ossrhPassword=your-sonatype-password
+
+# Signing (required for Maven Central)
+signing.keyId=your-gpg-key-id
+signing.password=your-gpg-password
+signing.secretKeyRingFile=/path/to/your/secring.gpg

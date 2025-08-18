@@ -1,0 +1,142 @@
+plugins {
+    id 'java'
+    id 'maven-publish'
+    id 'signing'
+}
+
+
+
+group = 'io.github.ritesh089'
+version = '1.0.1-SNAPSHOT'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // Only minimal Vert.x core for event bus and JSON
+    implementation 'io.vertx:vertx-core:5.0.0'
+    
+    // SLF4J for logging (API only, implementation provided by consumers)
+    implementation 'org.slf4j:slf4j-api:2.0.16'
+    
+    // Test dependencies
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'io.vertx:vertx-junit5:5.0.0'
+    testImplementation 'ch.qos.logback:logback-classic:1.4.14'
+}
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            from components.java
+            
+            pom {
+                name = 'MCP SDK'
+                description = 'Lightweight SDK for building MCP tools with context support and annotations'
+                url = 'https://github.com/ritesh089/mcp-framework'
+                
+                licenses {
+                    license {
+                        name = 'The Apache License, Version 2.0'
+                        url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+                
+                developers {
+                    developer {
+                        id = 'ritesh089'
+                        name = 'Ritesh Rai'
+                        email = 'ritesh089@users.noreply.github.com'
+                    }
+                }
+                
+                scm {
+                    connection = 'scm:git:git://github.com/ritesh089/mcp-framework.git'
+                    developerConnection = 'scm:git:ssh://github.com:ritesh089/mcp-framework.git'
+                    url = 'https://github.com/ritesh089/mcp-framework/tree/main'
+                }
+            }
+        }
+    }
+    
+    repositories {
+        maven {
+            name = "OSSRH"
+            def releasesRepoUrl = "https://ossrh-staging-api.central.sonatype.com/service/local/"
+            def snapshotsRepoUrl = "https://central.sonatype.com/repository/maven-snapshots/"
+            url = version.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
+            credentials {
+                username = project.findProperty("ossrhUsername") ?: System.getenv("OSSRH_USERNAME")
+                password = project.findProperty("ossrhPassword") ?: System.getenv("OSSRH_PASSWORD")
+            }
+        }
+        
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/ritesh089/mcp-framework")
+            credentials {
+                username = project.findProperty("gpr.user") ?: System.getenv("USERNAME")
+                password = project.findProperty("gpr.key") ?: System.getenv("TOKEN")
+            }
+        }
+        
+        // Local repository for testing
+        maven {
+            name = "LocalFileSystem"
+            url = uri("${buildDir}/repo")
+        }
+    }
+}
+
+// Configure signing for Maven Central
+signing {
+    sign publishing.publications.maven
+}
+
+jar {
+    archiveBaseName = 'mcp-sdk'
+}
+
+// Add source and javadoc JARs for better Maven compatibility
+java {
+    withSourcesJar()
+    withJavadocJar()
+}
+
+// Custom tasks for easier publishing
+task publishToMavenCentral {
+    group = 'publishing'
+    description = 'Publish to Maven Central (OSSRH)'
+    dependsOn 'publishMavenPublicationToOSSRHRepository'
+}
+
+task publishSnapshot {
+    group = 'publishing'
+    description = 'Publish snapshot to OSSRH'
+    dependsOn 'publishMavenPublicationToOSSRHRepository'
+}
+
+task publishLocal {
+    group = 'publishing'  
+    description = 'Publish to local file system repository for testing'
+    dependsOn 'publishMavenPublicationToLocalFileSystemRepository'
+}
+
+task publishGitHub {
+    group = 'publishing'
+    description = 'Publish to GitHub Packages'
+    dependsOn 'publishMavenPublicationToGitHubPackagesRepository'
+}
+
+// Validate that we have proper snapshot version for snapshot publishing
+gradle.taskGraph.whenReady { taskGraph ->
+    if (taskGraph.hasTask(publishSnapshot) && !version.toString().endsWith('-SNAPSHOT')) {
+        throw new RuntimeException("Cannot publish non-SNAPSHOT version ${version} using publishSnapshot task")
+    }
+} 
