@@ -44,8 +44,9 @@ public abstract class AnnotatedMCPTool extends com.mcp.sdk.MCPTool {
     }
 
     @Override
-    protected final String getToolName() {
-        com.mcp.sdk.annotations.MCPTool annotation = getClass().getAnnotation(com.mcp.sdk.annotations.MCPTool.class);
+    protected String getToolName() {
+        Class<?> annotationSource = getToolAnnotationSource();
+        com.mcp.sdk.annotations.MCPTool annotation = annotationSource.getAnnotation(com.mcp.sdk.annotations.MCPTool.class);
         if (annotation != null && !annotation.name().isEmpty()) {
             return annotation.name();
         }
@@ -55,8 +56,9 @@ public abstract class AnnotatedMCPTool extends com.mcp.sdk.MCPTool {
     /**
      * Get the tool description from annotation.
      */
-    protected final String getToolDescription() {
-        com.mcp.sdk.annotations.MCPTool annotation = getClass().getAnnotation(com.mcp.sdk.annotations.MCPTool.class);
+    protected String getToolDescription() {
+        Class<?> annotationSource = getToolAnnotationSource();
+        com.mcp.sdk.annotations.MCPTool annotation = annotationSource.getAnnotation(com.mcp.sdk.annotations.MCPTool.class);
         if (annotation != null) {
             return annotation.description();
         }
@@ -66,7 +68,7 @@ public abstract class AnnotatedMCPTool extends com.mcp.sdk.MCPTool {
     /**
      * Get the tool definition generated from annotations.
      */
-    protected final JsonObject getToolDefinition() {
+    protected JsonObject getToolDefinition() {
         String toolName = getToolName();
         return cachedDefinitions.computeIfAbsent(toolName, this::generateToolDefinition);
     }
@@ -119,7 +121,8 @@ public abstract class AnnotatedMCPTool extends com.mcp.sdk.MCPTool {
 
     private Method findToolMethod() {
         // Look for public methods that aren't from the base class
-        return Arrays.stream(getClass().getDeclaredMethods())
+        Class<?> annotationSource = getToolAnnotationSource();
+        return Arrays.stream(annotationSource.getDeclaredMethods())
             .filter(method -> method.isAnnotationPresent(com.mcp.sdk.annotations.ToolMethod.class) ||
                             (method.getParameterCount() > 0 && 
                              Arrays.stream(method.getParameters()).anyMatch(p -> p.isAnnotationPresent(Parameter.class))))
@@ -325,8 +328,8 @@ public abstract class AnnotatedMCPTool extends com.mcp.sdk.MCPTool {
             // Extract and validate parameters with context support
             Object[] parameters = extractParameters(toolMethod, arguments, context);
             
-            // Invoke the tool method
-            Object result = toolMethod.invoke(this, parameters);
+            // Invoke the tool method using the extensible execution method
+            Object result = executeToolMethod(toolMethod.getName(), parameters, context);
             
             // Use ResponseProcessor to convert any return type to ToolResult
             ToolResult toolResult = ResponseProcessor.processResponse(result, toolMethod);
@@ -395,5 +398,44 @@ public abstract class AnnotatedMCPTool extends com.mcp.sdk.MCPTool {
         return result;
     }
 
+    /**
+     * Get the class to scan for tool annotations.
+     * Override this to provide a different class for annotation discovery.
+     * Used by adapters to delegate annotation discovery to wrapped objects.
+     */
+    protected Class<?> getToolAnnotationSource() {
+        return this.getClass();
+    }
+    
+    /**
+     * Execute a tool method with the given parameters.
+     * Override this to customize method execution behavior.
+     * Used by adapters to delegate method execution to wrapped objects.
+     */
+    protected Object executeToolMethod(String methodName, Object[] parameters, MCPContext context) throws Exception {
+        Method method = getToolMethod(methodName);
+        if (method == null) {
+            throw new IllegalArgumentException("Method not found: " + methodName);
+        }
+        
+        Object instance = getToolInstance();
+        return method.invoke(instance, parameters);
+    }
+    
+    /**
+     * Get the tool method by name.
+     * Override this to customize method resolution.
+     */
+    protected Method getToolMethod(String methodName) {
+        return toolMethods.get(methodName);
+    }
+    
+    /**
+     * Get the instance to invoke methods on.
+     * Override this to customize instance resolution.
+     */
+    protected Object getToolInstance() {
+        return this;
+    }
 
 }
