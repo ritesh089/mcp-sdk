@@ -1,7 +1,7 @@
 package com.mcp.sdk;
 
 import com.mcp.sdk.annotations.MCPResource;
-import com.mcp.sdk.exceptions.MCPResourceNotFoundException;
+
 import io.vertx.core.json.JsonObject;
 
 /**

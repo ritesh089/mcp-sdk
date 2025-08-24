@@ -226,8 +226,55 @@ public abstract class AnnotatedMCPTool extends com.mcp.sdk.MCPTool {
             return value instanceof Number ? ((Number) value).floatValue() : Float.parseFloat(value.toString());
         } else if (targetType == boolean.class || targetType == Boolean.class) {
             return value instanceof Boolean ? value : Boolean.parseBoolean(value.toString());
+        } else if (targetType.isArray()) {
+            // Handle array types
+            return convertToArray(value, targetType);
         }
 
+        return value;
+    }
+    
+    private Object convertToArray(Object value, Class<?> arrayType) {
+        if (value == null) return null;
+        
+        Class<?> componentType = arrayType.getComponentType();
+        
+        // Handle JsonArray from Vert.x
+        if (value instanceof io.vertx.core.json.JsonArray) {
+            io.vertx.core.json.JsonArray jsonArray = (io.vertx.core.json.JsonArray) value;
+            
+            if (componentType == String.class) {
+                String[] result = new String[jsonArray.size()];
+                for (int i = 0; i < jsonArray.size(); i++) {
+                    Object item = jsonArray.getValue(i);
+                    result[i] = item != null ? item.toString() : null;
+                }
+                return result;
+            } else if (componentType == int.class || componentType == Integer.class) {
+                int[] result = new int[jsonArray.size()];
+                for (int i = 0; i < jsonArray.size(); i++) {
+                    Integer intValue = jsonArray.getInteger(i);
+                    result[i] = intValue != null ? intValue : 0;
+                }
+                return result;
+            } else if (componentType == double.class || componentType == Double.class) {
+                double[] result = new double[jsonArray.size()];
+                for (int i = 0; i < jsonArray.size(); i++) {
+                    Double doubleValue = jsonArray.getDouble(i);
+                    result[i] = doubleValue != null ? doubleValue : 0.0;
+                }
+                return result;
+            }
+        }
+        
+        // Handle Java arrays or lists
+        if (value instanceof java.util.List) {
+            java.util.List<?> list = (java.util.List<?>) value;
+            if (componentType == String.class) {
+                return list.stream().map(Object::toString).toArray(String[]::new);
+            }
+        }
+        
         return value;
     }
 
@@ -281,13 +328,35 @@ public abstract class AnnotatedMCPTool extends com.mcp.sdk.MCPTool {
             // Invoke the tool method
             Object result = toolMethod.invoke(this, parameters);
             
-            // Convert result to JsonObject
-            return convertResult(result);
-        } catch (Exception e) {
-            if (e.getCause() instanceof MCPValidationException) {
-                throw (MCPValidationException) e.getCause();
+            // Use ResponseProcessor to convert any return type to ToolResult
+            ToolResult toolResult = ResponseProcessor.processResponse(result, toolMethod);
+            return toolResult.toJsonObject();
+            
+        } catch (java.lang.reflect.InvocationTargetException e) {
+            Throwable cause = e.getCause();
+            
+            // Handle MCPToolException with rich error information
+            if (cause instanceof MCPToolException) {
+                ToolResult errorResult = ResponseProcessor.processException((MCPToolException) cause, toolMethod);
+                return errorResult.toJsonObject();
             }
-            throw new RuntimeException("Failed to execute tool method: " + e.getMessage(), e);
+            
+            // Handle MCPValidationException (legacy)
+            if (cause instanceof MCPValidationException) {
+                throw (MCPValidationException) cause;
+            }
+            
+            // Handle any other exception
+            ToolResult errorResult = ResponseProcessor.processGenericException((Exception) cause, toolMethod);
+            return errorResult.toJsonObject();
+            
+        } catch (MCPValidationException e) {
+            // Direct validation exception
+            throw e;
+        } catch (Exception e) {
+            // Any other exception during parameter extraction or method invocation
+            ToolResult errorResult = ResponseProcessor.processGenericException(e, toolMethod);
+            return errorResult.toJsonObject();
         }
     }
     
@@ -326,25 +395,5 @@ public abstract class AnnotatedMCPTool extends com.mcp.sdk.MCPTool {
         return result;
     }
 
-    private JsonObject convertResult(Object result) {
-        if (result == null) {
-            return createSuccessResponse("Operation completed successfully");
-        }
-        
-        if (result instanceof JsonObject) {
-            return (JsonObject) result;
-        }
-        
-        if (result instanceof String) {
-            return createSuccessResponse((String) result);
-        }
-        
-        if (result instanceof ToolResult) {
-            ToolResult toolResult = (ToolResult) result;
-            return toolResult.toJsonObject();
-        }
-        
-        // For other types, convert to string representation
-        return createSuccessResponse("Result: " + result.toString());
-    }
+
 }
