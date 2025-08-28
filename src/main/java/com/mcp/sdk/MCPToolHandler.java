@@ -48,10 +48,16 @@ public interface MCPToolHandler {
      * @return the tool name
      */
     default String getToolName() {
-        MCPTool annotation = this.getClass().getAnnotation(MCPTool.class);
-        if (annotation != null && !annotation.name().isEmpty()) {
-            return annotation.name();
+        try {
+            MCPTool annotation = this.getClass().getAnnotation(MCPTool.class);
+            if (annotation != null && !annotation.name().isEmpty()) {
+                return annotation.name();
+            }
+        } catch (Exception e) {
+            // Defensive: if annotation reading fails, fall back gracefully
+            System.err.println("Warning: Failed to read @MCPTool annotation from " + this.getClass().getName() + ": " + e.getMessage());
         }
+        
         // Fallback: derive from class name (e.g., "CalculatorTool" -> "calculator")
         return this.getClass().getSimpleName().toLowerCase().replaceAll("tool$", "");
     }
@@ -66,10 +72,16 @@ public interface MCPToolHandler {
      * @return the tool description
      */
     default String getToolDescription() {
-        MCPTool annotation = this.getClass().getAnnotation(MCPTool.class);
-        if (annotation != null) {
-            return annotation.description();
+        try {
+            MCPTool annotation = this.getClass().getAnnotation(MCPTool.class);
+            if (annotation != null && !annotation.description().isEmpty()) {
+                return annotation.description();
+            }
+        } catch (Exception e) {
+            // Defensive: if annotation reading fails, fall back gracefully
+            System.err.println("Warning: Failed to read @MCPTool annotation from " + this.getClass().getName() + ": " + e.getMessage());
         }
+        
         // Fallback description
         return "Tool implementation of " + this.getClass().getSimpleName();
     }

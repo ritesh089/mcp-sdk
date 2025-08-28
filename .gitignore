@@ -1,18 +1,69 @@
-# Build outputs
+# MCP SDK Module
+
+# Gradle build artifacts
 build/
 .gradle/
+gradle-app.setting
+!gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
 
 # IDE files
 .idea/
-*.iml
 .vscode/
+*.iml
+*.ipr
+*.iws
+
+# Compiled class files
+*.class
+target/
+out/
+bin/
+
+# JAR files (except wrapper)
+*.jar
+!gradle/wrapper/gradle-wrapper.jar
+
+# Maven artifacts
+.mvn/
+*.pom.versionsBackup
+
+# Log files
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
 
 # OS files
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
 
-# Credentials
-gradle.properties
+# Generated sources
+generated/
+generated-sources/
 
-# Logs
-*.log
+# Test artifacts
+test-results/
+coverage/
+*.coverage
+
+# Publishing artifacts
+publications/
+
+# Environment configuration
+.env
+.env.local
+gradle.properties.local
+
+# Documentation build
+javadoc/
