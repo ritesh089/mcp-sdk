@@ -1,5 +1,6 @@
 package com.mcp.sdk;
 
+import com.mcp.sdk.annotations.MCPTool;
 import java.util.Map;
 
 /**
@@ -26,15 +27,8 @@ import java.util.Map;
  *         return new CalculationResult(expression, evaluate(expression));
  *     }
  *     
- *     @Override
- *     public String getToolName() {
- *         return "calculator";
- *     }
- *     
- *     @Override
- *     public String getToolDescription() {
- *         return "Advanced calculator with rich error handling";
- *     }
+ *     // ✅ NO BOILERPLATE METHODS NEEDED!
+ *     // Interface provides defaults that read from @MCPTool annotation
  * }
  * }
  * </pre>
@@ -46,19 +40,39 @@ public interface MCPToolHandler {
     
     /**
      * Get the name of this tool.
-     * This should match the name specified in the @MCPTool annotation.
+     * 
+     * Default implementation automatically reads from the @MCPTool annotation,
+     * eliminating the need for boilerplate code. Override only if you need
+     * custom logic or dynamic tool names.
      * 
      * @return the tool name
      */
-    String getToolName();
+    default String getToolName() {
+        MCPTool annotation = this.getClass().getAnnotation(MCPTool.class);
+        if (annotation != null && !annotation.name().isEmpty()) {
+            return annotation.name();
+        }
+        // Fallback: derive from class name (e.g., "CalculatorTool" -> "calculator")
+        return this.getClass().getSimpleName().toLowerCase().replaceAll("tool$", "");
+    }
     
     /**
      * Get the description of this tool.
-     * This should match the description specified in the @MCPTool annotation.
+     * 
+     * Default implementation automatically reads from the @MCPTool annotation,
+     * eliminating the need for boilerplate code. Override only if you need
+     * custom logic or dynamic descriptions.
      * 
      * @return the tool description
      */
-    String getToolDescription();
+    default String getToolDescription() {
+        MCPTool annotation = this.getClass().getAnnotation(MCPTool.class);
+        if (annotation != null) {
+            return annotation.description();
+        }
+        // Fallback description
+        return "Tool implementation of " + this.getClass().getSimpleName();
+    }
     
     /**
      * Execute a tool method with the given parameters.
