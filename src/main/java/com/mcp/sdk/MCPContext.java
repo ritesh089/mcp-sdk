@@ -92,6 +92,28 @@ public interface MCPContext {
     boolean isStreaming();
     
     /**
+     * Check if this request is using HTTP/2 protocol.
+     * 
+     * @return true if HTTP/2 request
+     */
+    boolean isHttp2();
+    
+    /**
+     * Get the streaming ID for HTTP streaming operations.
+     * Only available for streaming requests.
+     * 
+     * @return streaming ID if this is a streaming request
+     */
+    Optional<String> getStreamingId();
+    
+    /**
+     * Check if client accepts streaming response (Accept: text/plain or text/event-stream).
+     * 
+     * @return true if client accepts streaming
+     */
+    boolean acceptsStreaming();
+    
+    /**
      * Create a derived context with additional attributes.
      * Useful for passing enriched context to sub-operations.
      * 

@@ -10,6 +10,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 /**
  * Enhanced MCP Tool base class with annotation support and type-safe parameter binding.
@@ -331,9 +332,14 @@ public abstract class AnnotatedMCPTool extends com.mcp.sdk.MCPTool {
             // Invoke the tool method using the extensible execution method
             Object result = executeToolMethod(toolMethod.getName(), parameters, context);
             
-            // Use ResponseProcessor to convert any return type to ToolResult
-            ToolResult toolResult = ResponseProcessor.processResponse(result, toolMethod);
-            return toolResult.toJsonObject();
+            // Check if result is a Stream<T> for smart streaming/POJO handling
+            if (result instanceof Stream) {
+                return StreamResponseProcessor.processStreamResponse((Stream<?>) result, context, toolMethod);
+            } else {
+                // Use existing ResponseProcessor for POJO handling
+                ToolResult toolResult = ResponseProcessor.processResponse(result, toolMethod);
+                return toolResult.toJsonObject();
+            }
             
         } catch (java.lang.reflect.InvocationTargetException e) {
             Throwable cause = e.getCause();

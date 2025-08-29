@@ -22,6 +22,9 @@ public class DefaultMCPContext implements MCPContext {
     private final long startTime;
     private final String clientAddress;
     private final boolean streaming;
+    private final boolean http2;
+    private final String streamingId;
+    private final boolean acceptsStreaming;
     
     private DefaultMCPContext(Builder builder) {
         this.correlationId = builder.correlationId;
@@ -34,6 +37,9 @@ public class DefaultMCPContext implements MCPContext {
         this.startTime = builder.startTime;
         this.clientAddress = builder.clientAddress;
         this.streaming = builder.streaming;
+        this.http2 = builder.http2;
+        this.streamingId = builder.streamingId;
+        this.acceptsStreaming = builder.acceptsStreaming;
     }
     
     @Override
@@ -92,6 +98,21 @@ public class DefaultMCPContext implements MCPContext {
     }
     
     @Override
+    public boolean isHttp2() {
+        return http2;
+    }
+    
+    @Override
+    public Optional<String> getStreamingId() {
+        return Optional.ofNullable(streamingId);
+    }
+    
+    @Override
+    public boolean acceptsStreaming() {
+        return acceptsStreaming;
+    }
+    
+    @Override
     public MCPContext withAttributes(Map<String, Object> additionalAttributes) {
         return builder()
             .correlationId(correlationId)
@@ -103,6 +124,9 @@ public class DefaultMCPContext implements MCPContext {
             .startTime(startTime)
             .clientAddress(clientAddress)
             .streaming(streaming)
+            .http2(http2)
+            .streamingId(streamingId)
+            .acceptsStreaming(acceptsStreaming)
             .attributes(attributes)
             .attributes(additionalAttributes)
             .build();
@@ -136,6 +160,9 @@ public class DefaultMCPContext implements MCPContext {
         private long startTime = System.currentTimeMillis();
         private String clientAddress;
         private boolean streaming = false;
+        private boolean http2 = false;
+        private String streamingId;
+        private boolean acceptsStreaming = false;
         
         public Builder correlationId(String correlationId) {
             this.correlationId = correlationId;
@@ -189,6 +216,21 @@ public class DefaultMCPContext implements MCPContext {
         
         public Builder streaming(boolean streaming) {
             this.streaming = streaming;
+            return this;
+        }
+        
+        public Builder http2(boolean http2) {
+            this.http2 = http2;
+            return this;
+        }
+        
+        public Builder streamingId(String streamingId) {
+            this.streamingId = streamingId;
+            return this;
+        }
+        
+        public Builder acceptsStreaming(boolean acceptsStreaming) {
+            this.acceptsStreaming = acceptsStreaming;
             return this;
         }
         

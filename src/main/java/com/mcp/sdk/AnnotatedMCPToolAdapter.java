@@ -31,7 +31,7 @@ import java.util.Map;
  * }
  * </pre>
  */
-public class AnnotatedMCPToolAdapter extends AnnotatedMCPTool {
+public class AnnotatedMCPToolAdapter extends AnnotatedMCPTool implements HttpStreamingSupport {
     
     private final MCPToolHandler handler;
     private final Map<String, Method> handlerMethods = new HashMap<>();
@@ -170,10 +170,27 @@ public class AnnotatedMCPToolAdapter extends AnnotatedMCPTool {
         return handler.getToolInstance();
     }
     
+    /**
+     * Implement HttpStreamingSupport interface.
+     * Delegate streaming calls to the handler if it supports streaming.
+     */
+    @Override
+    public void handleHttpStreaming(JsonObject arguments, Object requestId, String sessionId, String streamingId) {
+        if (handler instanceof HttpStreamingSupport) {
+            ((HttpStreamingSupport) handler).handleHttpStreaming(arguments, requestId, sessionId, streamingId);
+        } else {
+            // Handler doesn't support streaming - write error and end stream
+            com.mcp.sdk.HttpStreamingHelper.writeJsonRpcError(streamingId, -32601, 
+                "Tool " + handler.getToolName() + " does not support HTTP streaming");
+            com.mcp.sdk.HttpStreamingHelper.endStream(streamingId);
+        }
+    }
+    
     @Override
     public String toString() {
-        return String.format("AnnotatedMCPToolAdapter[handler=%s, tool=%s]", 
+        return String.format("AnnotatedMCPToolAdapter[handler=%s, tool=%s, streaming=%s]", 
             handler.getClass().getSimpleName(), 
-            handler.getToolName());
+            handler.getToolName(),
+            handler instanceof HttpStreamingSupport);
     }
 }

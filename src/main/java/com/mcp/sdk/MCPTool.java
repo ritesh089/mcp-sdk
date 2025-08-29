@@ -117,8 +117,26 @@ public abstract class MCPTool extends AbstractVerticle {
             builder.streaming(request.getBoolean("streaming", false));
         }
         
-        // Add any additional metadata
+        // Extract HTTP/2 and streaming context information
+        if (request.containsKey("http2")) {
+            builder.http2(request.getBoolean("http2", false));
+        }
+        
+        if (request.containsKey("streamingId")) {
+            builder.streamingId(request.getString("streamingId"));
+        }
+        
+        if (request.containsKey("httpStreaming")) {
+            builder.acceptsStreaming(request.getBoolean("httpStreaming", false));
+        }
+        
+        // Detect streaming acceptance from Accept header in metadata
         JsonObject metadata = request.getJsonObject("metadata", new JsonObject());
+        String acceptHeader = metadata.getString("Accept", "");
+        if (acceptHeader.contains("text/plain") || acceptHeader.contains("text/event-stream")) {
+            builder.acceptsStreaming(true);
+        }
+        
         builder.metadata(metadata);
         
         return builder.build();
